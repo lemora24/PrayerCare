@@ -322,6 +322,43 @@ public class PrayerRequestsController : ControllerBase
         return NoContent();
     }
 
+        // GET: /api/prayer-requests/{id}/logs
+    [HttpGet("prayer-requests/{id:guid}/logs")]
+    public async Task<ActionResult<IEnumerable<PrayerLogResponse>>> GetPrayerLogs(
+        Guid id)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId is null)
+            return Unauthorized();
+
+        var prayerRequestExists = await _dbContext.PrayerRequests
+            .AnyAsync(x =>
+                x.Id == id &&
+                x.UserId == userId.Value);
+
+        if (!prayerRequestExists)
+            return NotFound();
+
+        var logs = await _dbContext.PrayerLogs
+            .AsNoTracking()
+            .Where(x =>
+                x.PrayerRequestId == id &&
+                x.UserId == userId.Value)
+            .OrderByDescending(x => x.PrayedAt)
+            .Select(x => new PrayerLogResponse
+            {
+                Id = x.Id,
+                PrayerRequestId = x.PrayerRequestId,
+                PrayedAt = x.PrayedAt,
+                Note = x.Note,
+                CreatedAt = x.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(logs);
+    }
+
     private Guid? GetCurrentUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
