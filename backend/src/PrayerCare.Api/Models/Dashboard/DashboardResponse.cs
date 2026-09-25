@@ -14,4 +14,7 @@ public class DashboardResponse
 
     public List<PrayerRequestAttentionResponse> NeedsAttention { get; set; }
         = new();
+
+    public List<RecentPrayerActivityResponse> RecentActivity { get; set; }
+    = new();
 }

@@ -53,6 +53,70 @@ public class DashboardController : ControllerBase
         var totalPrayerLogs = await _dbContext.PrayerLogs
             .AsNoTracking()
             .CountAsync(x => x.UserId == userId.Value);
+        var needsAttention = await _dbContext.PrayerRequests
+        .AsNoTracking()
+        .Include(x => x.Person)
+        .Where(x =>
+            x.UserId == userId.Value &&
+            (x.Status == PrayerRequestStatus.Active ||
+            x.Status == PrayerRequestStatus.FollowingUp))
+        .OrderBy(x => x.LastPrayedAt.HasValue)
+        .ThenBy(x => x.LastPrayedAt)
+        .ThenByDescending(x => x.Priority)
+        .ThenBy(x => x.CreatedAt)
+        .Take(5)
+        .ToListAsync();
+
+    var attentionResponses = needsAttention
+        .Select(x => new PrayerRequestAttentionResponse
+        {
+            Id = x.Id,
+            PersonId = x.PersonId,
+            PersonName = string.Join(
+                " ",
+                new[]
+                {
+                    x.Person.FirstName,
+                    x.Person.LastName
+                }.Where(name => !string.IsNullOrWhiteSpace(name))),
+            Title = x.Title,
+            Priority = x.Priority,
+            Status = x.Status,
+            LastPrayedAt = x.LastPrayedAt,
+            CreatedAt = x.CreatedAt
+        })
+        .ToList();
+
+        var recentPrayerLogs = await _dbContext.PrayerLogs
+            .AsNoTracking()
+            .Include(x => x.PrayerRequest)
+                .ThenInclude(x => x.Person)
+            .Where(x => x.UserId == userId.Value)
+            .OrderByDescending(x => x.PrayedAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .Take(5)
+            .ToListAsync();
+
+        var recentActivity = recentPrayerLogs
+            .Select(x => new RecentPrayerActivityResponse
+            {
+                Id = x.Id,
+                PrayerRequestId = x.PrayerRequestId,
+                PersonId = x.PrayerRequest.PersonId,
+
+                PersonName = string.Join(
+                    " ",
+                    new[]
+                    {
+                        x.PrayerRequest.Person.FirstName,
+                        x.PrayerRequest.Person.LastName
+                    }.Where(name => !string.IsNullOrWhiteSpace(name))),
+
+                PrayerRequestTitle = x.PrayerRequest.Title,
+                PrayedAt = x.PrayedAt,
+                Note = x.Note
+            })
+            .ToList();
 
         var response = new DashboardResponse
         {
@@ -60,7 +124,9 @@ public class DashboardController : ControllerBase
             ActivePrayerRequests = activePrayerRequests,
             FollowingUpPrayerRequests = followingUpPrayerRequests,
             AnsweredPrayerRequests = answeredPrayerRequests,
-            TotalPrayerLogs = totalPrayerLogs
+            TotalPrayerLogs = totalPrayerLogs,
+            NeedsAttention = attentionResponses,
+            RecentActivity = recentActivity
         };
 
         return Ok(response);
