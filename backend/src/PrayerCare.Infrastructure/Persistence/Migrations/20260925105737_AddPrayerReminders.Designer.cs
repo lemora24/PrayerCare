@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PrayerCare.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using PrayerCare.Infrastructure.Persistence;
 namespace PrayerCare.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(PrayerCareDbContext))]
-    partial class PrayerCareDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260925105737_AddPrayerReminders")]
+    partial class AddPrayerReminders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

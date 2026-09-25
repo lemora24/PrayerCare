@@ -25,4 +25,8 @@ public class Person : BaseEntity
 
     public ICollection<PrayerRequest> PrayerRequests { get; set; }
         = new List<PrayerRequest>();
+    
+    public ICollection<PrayerReminder> PrayerReminders { get; set; }
+    = new List<PrayerReminder>();
+    
 }

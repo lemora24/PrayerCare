@@ -23,6 +23,7 @@ public class PrayerCareDbContext
     public DbSet<PrayerRequest> PrayerRequests => Set<PrayerRequest>();
 
     public DbSet<PrayerLog> PrayerLogs => Set<PrayerLog>();
+    public DbSet<PrayerReminder> PrayerReminders => Set<PrayerReminder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
