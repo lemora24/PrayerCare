@@ -260,4 +260,40 @@ public class PrayerRemindersController : ControllerBase
 
         return NoContent();
     }
+    [HttpGet("/api/reminders")]
+    public async Task<IActionResult> GetAll() // Endpoint to get all reminders for the current user
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var reminders = await _context.PrayerReminders
+            .AsNoTracking()
+            .Where(reminder => reminder.UserId == userId)
+            .Include(reminder => reminder.Person)
+            .OrderBy(reminder => reminder.ReminderTime)
+            .Select(reminder => new
+            {
+                reminder.Id,
+                reminder.PersonId,
+                PersonName = reminder.Person.FirstName + " " +
+                    (reminder.Person.LastName ?? ""),
+                reminder.ReminderTime,
+                reminder.TimeZoneId,
+                reminder.Sunday,
+                reminder.Monday,
+                reminder.Tuesday,
+                reminder.Wednesday,
+                reminder.Thursday,
+                reminder.Friday,
+                reminder.Saturday,
+                reminder.IsEnabled
+            })
+            .ToListAsync();
+
+        return Ok(reminders);
+    }
 }
