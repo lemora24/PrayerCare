@@ -17,6 +17,11 @@ public class PrayerReminderConfiguration
         builder.Property(x => x.ReminderTime)
             .HasColumnType("time")
             .IsRequired();
+        
+        builder.Property(x => x.TimeZoneId)
+            .HasMaxLength(100)
+            .IsRequired()
+            .HasDefaultValue("America/Costa_Rica");
 
         builder.Property(x => x.IsEnabled)
             .IsRequired();

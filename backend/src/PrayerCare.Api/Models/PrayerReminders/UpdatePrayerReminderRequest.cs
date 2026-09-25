@@ -3,6 +3,7 @@ namespace PrayerCare.Api.Models.PrayerReminders;
 public class UpdatePrayerReminderRequest
 {
     public TimeOnly ReminderTime { get; set; }
+    public string TimeZoneId { get; set; } = "America/Costa_Rica"; // Default timezone for Costa Rica
 
     public bool Sunday { get; set; }
 

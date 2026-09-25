@@ -48,15 +48,32 @@ public class PrayerRemindersController : ControllerBase
             !request.Friday &&
             !request.Saturday)
         {
-            return BadRequest("Selecciona al menos un día para el recordatorio.");
+            return BadRequest("Please select at least one day for the reminder.");
+        }
+        if (string.IsNullOrWhiteSpace(request.TimeZoneId))
+        {
+            return BadRequest("You must indicate a time zone.");
         }
 
+        try
+        {
+            TimeZoneInfo.FindSystemTimeZoneById(request.TimeZoneId);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return BadRequest("Timezone doesnt exist.");
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return BadRequest("Timezone invalid.");
+        }
         var reminder = new PrayerReminder
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             PersonId = personId,
             ReminderTime = request.ReminderTime,
+            TimeZoneId = request.TimeZoneId,
             Sunday = request.Sunday,
             Monday = request.Monday,
             Tuesday = request.Tuesday,
@@ -79,6 +96,7 @@ public class PrayerRemindersController : ControllerBase
                 reminder.Id,
                 reminder.PersonId,
                 reminder.ReminderTime,
+                reminder.TimeZoneId,
                 reminder.Sunday,
                 reminder.Monday,
                 reminder.Tuesday,
@@ -104,7 +122,7 @@ public class PrayerRemindersController : ControllerBase
 
         if (!personExists)
         {
-            return NotFound("No se encontró la persona.");
+            return NotFound("Person not found.");
         }
 
         var reminders = await _context.PrayerReminders
@@ -118,6 +136,7 @@ public class PrayerRemindersController : ControllerBase
                 reminder.Id,
                 reminder.PersonId,
                 reminder.ReminderTime,
+                reminder.TimeZoneId,
                 reminder.Sunday,
                 reminder.Monday,
                 reminder.Tuesday,
@@ -165,8 +184,26 @@ public class PrayerRemindersController : ControllerBase
         {
             return BadRequest("Selecciona al menos un día para el recordatorio.");
         }
+        if (string.IsNullOrWhiteSpace(request.TimeZoneId))
+        {
+            return BadRequest("Debes indicar una zona horaria.");
+        }
+
+        try
+        {
+            TimeZoneInfo.FindSystemTimeZoneById(request.TimeZoneId);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return BadRequest("Timezone doesnt exist.");
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return BadRequest("Timezone invalid.");
+        }
 
         reminder.ReminderTime = request.ReminderTime;
+        reminder.TimeZoneId = request.TimeZoneId;
         reminder.Sunday = request.Sunday;
         reminder.Monday = request.Monday;
         reminder.Tuesday = request.Tuesday;
@@ -184,6 +221,7 @@ public class PrayerRemindersController : ControllerBase
             reminder.Id,
             reminder.PersonId,
             reminder.ReminderTime,
+            reminder.TimeZoneId,
             reminder.Sunday,
             reminder.Monday,
             reminder.Tuesday,
@@ -193,5 +231,33 @@ public class PrayerRemindersController : ControllerBase
             reminder.Saturday,
             reminder.IsEnabled
         });
+    }
+    [HttpDelete("{reminderId:guid}")]
+    public async Task<IActionResult> Delete(
+        Guid personId,
+        Guid reminderId)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var reminder = await _context.PrayerReminders
+            .FirstOrDefaultAsync(x =>
+                x.Id == reminderId &&
+                x.PersonId == personId &&
+                x.UserId == userId);
+
+        if (reminder is null)
+        {
+            return NotFound("No se encontró el recordatorio.");
+        }
+
+        _context.PrayerReminders.Remove(reminder);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }
