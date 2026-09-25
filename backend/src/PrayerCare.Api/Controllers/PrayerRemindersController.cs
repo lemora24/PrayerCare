@@ -296,4 +296,38 @@ public class PrayerRemindersController : ControllerBase
 
         return Ok(reminders);
     }
+    [HttpGet("/api/reminders/agenda")]
+    public async Task<IActionResult> GetAgenda([FromQuery] DateOnly date)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var reminders = await _context.PrayerReminders
+            .AsNoTracking()
+            .Where(reminder => reminder.UserId == userId && reminder.IsEnabled)
+            .Where(reminder => date.DayOfWeek == DayOfWeek.Sunday && reminder.Sunday
+                || date.DayOfWeek == DayOfWeek.Monday && reminder.Monday
+                || date.DayOfWeek == DayOfWeek.Tuesday && reminder.Tuesday
+                || date.DayOfWeek == DayOfWeek.Wednesday && reminder.Wednesday
+                || date.DayOfWeek == DayOfWeek.Thursday && reminder.Thursday
+                || date.DayOfWeek == DayOfWeek.Friday && reminder.Friday
+                || date.DayOfWeek == DayOfWeek.Saturday && reminder.Saturday)
+            .Select(reminder => new PrayerAgendaItemResponse
+            {
+                ReminderId = reminder.Id,
+                PersonId = reminder.PersonId,
+                PersonName = reminder.Person.FirstName + " " +
+                    (reminder.Person.LastName ?? ""),
+                ReminderTime = reminder.ReminderTime,
+                TimeZoneId = reminder.TimeZoneId
+            })
+            .OrderBy(item => item.ReminderTime)
+            .ToListAsync();
+
+        return Ok(reminders);
+    }
 }
