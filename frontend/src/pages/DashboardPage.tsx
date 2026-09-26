@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Heart, UsersRound, CheckCircle2, Clock3 } from 'lucide-react'
-import { getDashboard } from '../services/dashboard'
+import {
+  Heart,
+  UsersRound,
+  CheckCircle2,
+  Clock3,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { getDashboard } from '../services/dashboard'
 
 type PrayerRequestAttention = {
   id: string
@@ -13,6 +18,7 @@ type PrayerRequestAttention = {
   lastPrayedAt: string | null
   createdAt: string
 }
+
 type PrayerActivity = {
   id: string
   prayerRequestId: string
@@ -22,6 +28,7 @@ type PrayerActivity = {
   prayedAt: string
   note: string | null
 }
+
 type DashboardData = {
   totalPeople: number
   activePrayerRequests: number
@@ -65,11 +72,19 @@ export default function DashboardPage() {
   }, [])
 
   if (loading) {
-    return <p className="text-slate-500">Cargando tu dashboard...</p>
+    return (
+      <p className="text-slate-500">
+        Cargando tu dashboard...
+      </p>
+    )
   }
 
   if (error || !data) {
-    return <p role="alert" className="text-red-600">{error}</p>
+    return (
+      <p role="alert" className="text-red-600">
+        {error}
+      </p>
+    )
   }
 
   const stats = [
@@ -86,34 +101,39 @@ export default function DashboardPage() {
       color: 'bg-amber-50 text-amber-700',
     },
     {
+      label: 'Peticiones en seguimiento',
+      value: data.followingUpPrayerRequests,
+      icon: Clock3,
+      color: 'bg-violet-50 text-violet-700',
+    },
+    {
       label: 'Peticiones respondidas',
       value: data.answeredPrayerRequests,
       icon: CheckCircle2,
       color: 'bg-emerald-50 text-emerald-700',
     },
-    {
-        label: 'Peticiones en seguimiento',
-        value: data.followingUpPrayerRequests,
-        icon: Clock3,
-        color: 'bg-violet-50 text-violet-700',
-    },
   ]
 
   return (
     <div className="space-y-8">
+
+      {/* ENCABEZADO */}
       <div>
         <p className="text-sm font-semibold text-emerald-700">
           TU ESPACIO PERSONAL
         </p>
+
         <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
           Cada oración cuenta.
         </h2>
+
         <p className="mt-2 text-slate-600">
           Un resumen de las personas y peticiones que acompañas.
         </p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {/* ESTADÍSTICAS */}
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div
             key={label}
@@ -125,54 +145,117 @@ export default function DashboardPage() {
               <Icon size={24} />
             </div>
 
-            <p className="text-sm font-medium text-slate-500">{label}</p>
+            <p className="text-sm font-medium text-slate-500">
+              {label}
+            </p>
+
             <p className="mt-2 text-4xl font-bold text-slate-900">
               {value}
             </p>
           </div>
         ))}
       </div>
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-  <div className="mb-5 flex items-center justify-between gap-4">
-    <div>
-      <h3 className="text-xl font-bold text-slate-900">
-        Necesitan atención
-      </h3>
-      <p className="mt-1 text-sm text-slate-500">
-        Peticiones que puedes tener presentes en tus oraciones.
-      </p>
-    </div>
 
-    <Link
-      to="/peticiones"
-      className="shrink-0 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
-    >
-      Ver peticiones →
-    </Link>
-  </div>
+      {/* NECESITAN ATENCIÓN */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-slate-900">
+              Necesitan atención
+            </h3>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Peticiones que puedes tener presentes en tus oraciones.
+            </p>
+          </div>
+
+          <Link
+            to="/peticiones"
+            className="shrink-0 text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
+          >
+            Ver peticiones →
+          </Link>
+        </div>
 
         {data.needsAttention.length === 0 ? (
-            <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">
+          <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">
             No hay peticiones que necesiten atención por ahora.
-            </p>
+          </p>
         ) : (
-            <div className="space-y-3">
+          <div className="space-y-3">
             {data.needsAttention.map((request) => (
-                <div
+              <div
                 key={request.id}
                 className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
-                >
+              >
                 <p className="text-sm font-medium text-emerald-700">
-                    {request.personName}
+                  {request.personName}
                 </p>
+
                 <h4 className="mt-1 font-semibold text-slate-900">
-                    {request.title}
+                  {request.title}
                 </h4>
-                </div>
+              </div>
             ))}
-            </div>
+          </div>
         )}
-        </section>
+      </section>
+
+      {/* ACTIVIDAD RECIENTE */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <h3 className="text-xl font-bold text-slate-900">
+            Actividad reciente
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Tus últimos momentos y registros de oración.
+          </p>
+        </div>
+
+        {data.recentActivity.length === 0 ? (
+          <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">
+            Todavía no has registrado actividad de oración.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {data.recentActivity.map((activity) => (
+              <div
+                key={activity.id}
+                className="flex gap-4 rounded-2xl border border-slate-100 p-5 transition hover:bg-slate-50"
+              >
+                <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-emerald-500" />
+
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-emerald-700">
+                    {activity.personName}
+                  </p>
+
+                  <h4 className="mt-1 font-semibold text-slate-900">
+                    {activity.prayerRequestTitle}
+                  </h4>
+
+                  {activity.note && (
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {activity.note}
+                    </p>
+                  )}
+
+                  <p className="mt-3 text-xs text-slate-400">
+                    {new Date(activity.prayedAt).toLocaleString(
+                      'es-CR',
+                      {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      },
+                    )}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

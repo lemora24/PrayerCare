@@ -5,6 +5,8 @@ import { useLocation } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './Components/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
+import PeoplePage from './pages/PeoplePage'
+import PersonDetailPage from './pages/PersonDetailPage'
 
 function PagePlaceholder({
   title,
@@ -82,17 +84,8 @@ function AppLayout() {
               path="/"
               element={<DashboardPage />}
             />
-
-            <Route
-              path="/personas"
-              element={
-                <PagePlaceholder
-                  title="Personas"
-                  description="Aquí podrás gestionar a las personas por quienes deseas orar."
-                />
-              }
-            />
-
+            <Route path="/personas" element={<PeoplePage />} />
+            <Route path="/personas/:id" element={<PersonDetailPage />} />
             <Route
               path="/peticiones"
               element={
