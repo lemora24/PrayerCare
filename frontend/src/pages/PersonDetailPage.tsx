@@ -31,6 +31,7 @@ import {
   getRandomPrayerVerse,
   type PrayerVerse,
 } from '../data/prayerVerses'
+import PersonPrayerReminders from '../Components/PersonPrayerReminders'
 
 const relationshipLabels: Record<number, string> = {
   1: 'Familia',
@@ -452,6 +453,13 @@ export default function PersonDetailPage() {
           }
           processingId={processingId}
         />
+        {/* Recordatorios Personales dentro del diario */}
+          <div className="mt-10">
+            <PersonPrayerReminders
+              personId={person.id}
+              personName={fullName}
+            />
+          </div>
       </section>
 
       {/* REFLEXIÓN */}

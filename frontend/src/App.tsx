@@ -16,12 +16,14 @@ import {
 
 import Sidebar from './Components/Sidebar'
 import ProtectedRoute from './Components/ProtectedRoute'
+import GlobalSearch from './Components/GlobalSearch'
 
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import PeoplePage from './pages/PeoplePage'
 import PersonDetailPage from './pages/PersonDetailPage'
 import PrayerRequestsPage from './pages/PrayerRequestsPage'
+import AgendaPage from './pages/AgendaPage'
 
 const pageDetails = [
   {
@@ -53,6 +55,7 @@ const pageDetails = [
 
 function AppLayout() {
   const location = useLocation()
+
   const [showSearch, setShowSearch] = useState(false)
 
   const currentPage =
@@ -92,20 +95,27 @@ function AppLayout() {
             {/* ACCIONES */}
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <div className="hidden items-center gap-2 rounded-full border border-[#526e82]/10 bg-white/60 px-4 py-2 text-xs font-medium text-[#718394] xl:flex">
-                <Sparkles size={14} className="text-[#c99c73]" />
+                <Sparkles
+                  size={14}
+                  className="text-[#c99c73]"
+                />
+
                 Un espacio para confiar
               </div>
 
+              {/* BÚSQUEDA GLOBAL */}
               <button
                 type="button"
-                aria-label="Mostrar búsqueda"
+                aria-label="Abrir búsqueda global"
+                aria-haspopup="dialog"
                 aria-expanded={showSearch}
-                onClick={() => setShowSearch((value) => !value)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#526e82]/10 bg-white/70 text-[#526e82] transition hover:bg-white"
+                onClick={() => setShowSearch(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#526e82]/10 bg-white/70 text-[#526e82] transition hover:border-[#526e82]/25 hover:bg-white hover:shadow-[0_5px_18px_rgba(38,61,80,0.07)]"
               >
                 <Search size={18} />
               </button>
 
+              {/* NOTIFICACIONES — PRÓXIMAMENTE */}
               <div className="relative">
                 <button
                   type="button"
@@ -118,35 +128,27 @@ function AppLayout() {
                 </button>
               </div>
 
+              {/* IDENTIDAD VISUAL */}
               <div className="ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#526e82] to-[#a8b9d0] text-white shadow-[0_8px_22px_rgba(82,110,130,0.18)]">
                 <Heart size={17} fill="currentColor" />
               </div>
             </div>
           </div>
-
-          {/* BÚSQUEDA EN DESARROLLO */}
-          {showSearch && (
-            <div className="border-t border-[#526e82]/10 px-5 py-3 sm:px-8 lg:px-12">
-              <div className="mx-auto max-w-[1600px]">
-                <div className="flex items-center gap-3 rounded-2xl border border-[#526e82]/10 bg-white/80 px-4 py-3">
-                  <Search size={18} className="text-[#8394a3]" />
-
-                  <p className="text-sm text-[#8394a3]">
-                    La búsqueda global estará disponible próximamente.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </header>
 
         {/* CONTENIDO */}
         <main className="relative z-10 w-full flex-1">
           <div className="mx-auto max-w-[1600px] px-5 pb-24 pt-8 sm:px-8 lg:px-12 lg:pb-12 lg:pt-10">
             <Routes>
-              <Route path="/" element={<DashboardPage />} />
+              <Route
+                path="/"
+                element={<DashboardPage />}
+              />
 
-              <Route path="/personas" element={<PeoplePage />} />
+              <Route
+                path="/personas"
+                element={<PeoplePage />}
+              />
 
               <Route
                 path="/personas/:personId"
@@ -160,23 +162,7 @@ function AppLayout() {
 
               <Route
                 path="/agenda"
-                element={
-                  <div className="pc-card p-10">
-                    <span className="pc-eyebrow">
-                      PRÓXIMAMENTE
-                    </span>
-
-                    <h1 className="pc-heading mt-4 text-5xl text-[#263d50]">
-                      Tu tiempo con Dios
-                    </h1>
-
-                    <p className="pc-body mt-4 max-w-xl">
-                      Muy pronto tendrás aquí un espacio
-                      dedicado a tus recordatorios y
-                      momentos de oración.
-                    </p>
-                  </div>
-                }
+                element={<AgendaPage />}
               />
             </Routes>
           </div>
@@ -195,6 +181,12 @@ function AppLayout() {
           </div>
         </footer>
       </div>
+
+      {/* MODAL DE BÚSQUEDA GLOBAL */}
+      <GlobalSearch
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+      />
     </div>
   )
 }

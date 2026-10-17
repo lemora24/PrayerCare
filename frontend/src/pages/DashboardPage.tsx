@@ -4,6 +4,8 @@ import {
   ArrowRight,
   ArrowUpRight,
   BookHeart,
+  CalendarDays,
+  CalendarCheck2,
   CheckCircle2,
   Clock3,
   Heart,
@@ -14,7 +16,22 @@ import {
   Waves,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+
 import { getDashboard } from '../services/dashboard'
+import {
+  getPrayerAgenda,
+  formatReminderTime,
+  toLocalDateString,
+  type PrayerAgendaItem,
+} from '../services/prayerReminders'
+import {
+  getAllPrayerRequests,
+  type PrayerRequest,
+} from '../services/prayerRequests'
+import {
+  getPeople,
+  type Person,
+} from '../services/people'
 
 type PrayerRequestAttention = {
   id: string
@@ -92,19 +109,97 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
+  const [todayAgenda, setTodayAgenda] =
+    useState<PrayerAgendaItem[]>([])
+
+  const [answeredRequests, setAnsweredRequests] =
+    useState<PrayerRequest[]>([])
+
+  const [peopleNames, setPeopleNames] =
+    useState<Record<string, string>>({})
+
+  const [agendaAvailable, setAgendaAvailable] = useState(true)
+  const [gratitudeAvailable, setGratitudeAvailable] = useState(true)
+
   useEffect(() => {
     let active = true
 
     async function loadDashboard() {
       try {
-        const result = await getDashboard()
+        const today = toLocalDateString(new Date())
 
-        if (active) {
-          setData(result)
+        const [
+          dashboardResult,
+          agendaResult,
+          requestsResult,
+          peopleResult,
+        ] = await Promise.allSettled([
+          getDashboard(),
+          getPrayerAgenda(today),
+          getAllPrayerRequests(),
+          getPeople(),
+        ])
+
+        if (!active) return
+
+        if (dashboardResult.status !== 'fulfilled') {
+          throw new Error('No se pudo cargar el resumen')
+        }
+
+        setData(dashboardResult.value)
+
+        if (agendaResult.status === 'fulfilled') {
+          setTodayAgenda(agendaResult.value)
+        } else {
+          setAgendaAvailable(false)
+        }
+
+        if (requestsResult.status === 'fulfilled') {
+          setAnsweredRequests(
+            requestsResult.value
+              .filter(
+                (request) =>
+                  request.status === 3 ||
+                  request.answeredAt !== null,
+              )
+              .sort(
+                (a, b) =>
+                  new Date(
+                    b.answeredAt ??
+                      b.updatedAt ??
+                      b.createdAt,
+                  ).getTime() -
+                  new Date(
+                    a.answeredAt ??
+                      a.updatedAt ??
+                      a.createdAt,
+                  ).getTime(),
+              )
+              .slice(0, 3),
+          )
+        } else {
+          setGratitudeAvailable(false)
+        }
+
+        if (peopleResult.status === 'fulfilled') {
+          const names: Record<string, string> = {}
+
+          peopleResult.value.forEach((person: Person) => {
+            names[person.id] = [
+              person.firstName,
+              person.lastName,
+            ]
+              .filter(Boolean)
+              .join(' ')
+          })
+
+          setPeopleNames(names)
         }
       } catch {
         if (active) {
-          setError('No se pudo cargar tu espacio de oración.')
+          setError(
+            'No se pudo cargar tu espacio de oración.',
+          )
         }
       } finally {
         if (active) {
@@ -113,7 +208,7 @@ export default function DashboardPage() {
       }
     }
 
-    loadDashboard()
+    void loadDashboard()
 
     return () => {
       active = false
@@ -126,7 +221,7 @@ export default function DashboardPage() {
         role="status"
         className="flex min-h-[55vh] flex-col items-center justify-center gap-5"
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#dce9e9] text-[#526e82] pc-animate-breathe">
+        <div className="pc-animate-breathe flex h-16 w-16 items-center justify-center rounded-full bg-[#dce9e9] text-[#526e82]">
           <Waves size={30} strokeWidth={1.5} />
         </div>
 
@@ -140,7 +235,9 @@ export default function DashboardPage() {
   if (error || !data) {
     return (
       <div role="alert" className="pc-card p-8">
-        <p className="pc-eyebrow">NO PUDIMOS CONECTAR</p>
+        <p className="pc-eyebrow">
+          NO PUDIMOS CONECTAR
+        </p>
 
         <h2 className="pc-heading mt-3 text-4xl">
           Algo interrumpió este momento.
@@ -182,41 +279,38 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-9 pb-6">
-
-      {/* =====================================
-          HERO — EL HORIZONTE
-      ===================================== */}
-
+      {/* HERO — EL HORIZONTE */}
       <section className="pc-animate-enter relative isolate min-h-[420px] overflow-hidden rounded-[32px] bg-[#dce9e9] shadow-[0_25px_75px_rgba(38,61,80,0.1)] sm:min-h-[480px] lg:min-h-[510px]">
-
-        {/* CIELO */}
+        {/* Cielo */}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,#dce5f1_0%,#e8e3ec_32%,#f6e5d7_66%,#c5d7df_100%)]" />
 
-        {/* RESPLANDOR DEL AMANECER */}
+        {/* Resplandor */}
         <div className="absolute -right-16 top-[8%] h-[400px] w-[400px] rounded-full bg-[#ffe8c8]/55 blur-[90px] sm:right-[8%]" />
 
-        {/* SOL */}
+        {/* Sol */}
         <div className="absolute bottom-[30%] right-[16%] h-28 w-28 rounded-full bg-[#fff4df]/75 shadow-[0_0_90px_35px_rgba(255,237,202,0.5)] blur-[1px] sm:h-40 sm:w-40" />
 
-        {/* MAR */}
+        {/* Mar */}
         <div className="absolute inset-x-0 bottom-0 h-[30%] bg-[linear-gradient(180deg,rgba(168,194,207,0.48),rgba(94,136,157,0.48))]" />
 
-        {/* HORIZONTE */}
+        {/* Horizonte */}
         <div className="absolute inset-x-0 bottom-[30%] h-px bg-white/70 shadow-[0_0_35px_12px_rgba(255,255,255,0.22)]" />
 
-        {/* ONDAS */}
+        {/* Ondas */}
         <div className="pointer-events-none absolute inset-x-0 bottom-[15%] h-px bg-white/30" />
         <div className="pointer-events-none absolute inset-x-0 bottom-[9%] h-px bg-white/20" />
 
-        {/* CAPA DE LEGIBILIDAD */}
+        {/* Capa de legibilidad */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#e6e8ed]/90 via-[#e9e7ed]/65 to-transparent" />
 
-        {/* CONTENIDO */}
+        {/* Contenido */}
         <div className="relative z-10 flex min-h-[420px] flex-col justify-between p-7 sm:min-h-[480px] sm:p-11 lg:min-h-[510px] lg:p-14">
-
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/40 px-4 py-2 backdrop-blur-md">
-              <Sunrise size={15} className="text-[#526e82]" />
+              <Sunrise
+                size={15}
+                className="text-[#526e82]"
+              />
 
               <span className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#526e82]">
                 Tu refugio de oración
@@ -275,6 +369,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-[#526e82]/75">
               <Waves size={17} strokeWidth={1.6} />
+
               <span className="text-[11px] font-medium tracking-wide">
                 PrayerCare · Surrender
               </span>
@@ -287,14 +382,141 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* =====================================
-          RESUMEN
-      ===================================== */}
+      {/* TU MOMENTO DE HOY */}
+      <section
+        className="pc-animate-enter"
+        aria-labelledby="today-title"
+      >
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="pc-eyebrow">
+              UN DÍA A LA VEZ
+            </p>
 
-      <section className="pc-animate-enter" aria-labelledby="summary-title">
+            <h2
+              id="today-title"
+              className="pc-heading mt-2 text-3xl text-[#263d50] sm:text-4xl"
+            >
+              Tu momento de hoy
+            </h2>
+
+            <p className="mt-2 text-sm text-[#8394a3]">
+              {new Date().toLocaleDateString('es-CR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              })}
+            </p>
+          </div>
+
+          <Link
+            to="/agenda"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[#526e82] hover:underline"
+          >
+            Abrir mi agenda
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+
+        <div className="rounded-[28px] border border-[#526e82]/10 bg-gradient-to-br from-white via-[#f8f9f8] to-[#e9eef3] p-5 shadow-[0_12px_35px_rgba(38,61,80,0.04)] sm:p-7">
+          {!agendaAvailable ? (
+            <div className="flex flex-wrap items-center justify-between gap-4 py-4">
+              <p className="text-sm text-[#8394a3]">
+                No pudimos consultar los horarios de hoy.
+              </p>
+
+              <Link
+                to="/agenda"
+                className="text-xs font-semibold text-[#526e82] hover:underline"
+              >
+                Ver agenda
+              </Link>
+            </div>
+          ) : todayAgenda.length === 0 ? (
+            <div className="flex flex-wrap items-center gap-5 py-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e9edf3] text-[#73879b]">
+                <CalendarDays
+                  size={25}
+                  strokeWidth={1.6}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="font-display text-2xl text-[#263d50]">
+                  Un espacio para estar presente.
+                </h3>
+
+                <p className="mt-1 text-sm leading-6 text-[#8394a3]">
+                  No hay recordatorios programados para hoy.
+                  Podés reservar un momento en tu agenda.
+                </p>
+              </div>
+
+              <Link
+                to="/agenda"
+                className="pc-button-secondary inline-flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Crear horario
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-3">
+              {todayAgenda.slice(0, 6).map((item) => (
+                <Link
+                  key={item.reminderId}
+                  to={`/personas/${item.personId}`}
+                  className="group rounded-[22px] border border-[#526e82]/10 bg-white/85 p-5 transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(38,61,80,0.07)]"
+                >
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e9e8f1] text-[#82799d]">
+                      <CalendarCheck2 size={19} />
+                    </div>
+
+                    <ArrowUpRight
+                      size={16}
+                      className="text-[#9cabb5] transition group-hover:text-[#526e82]"
+                    />
+                  </div>
+
+                  <p className="font-display text-3xl text-[#263d50]">
+                    {formatReminderTime(
+                      item.reminderTime,
+                    )}
+                  </p>
+
+                  <p className="mt-2 text-sm font-semibold text-[#526e82]">
+                    {item.personName}
+                  </p>
+
+                  <p className="mt-1 truncate text-[11px] text-[#97a4af]">
+                    {item.timeZoneId}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {agendaAvailable &&
+            todayAgenda.length > 6 && (
+              <p className="mt-4 text-right text-xs text-[#8394a3]">
+                Y {todayAgenda.length - 6} recordatorios
+                más en tu agenda.
+              </p>
+            )}
+        </div>
+      </section>
+
+      {/* RESUMEN */}
+      <section
+        className="pc-animate-enter"
+        aria-labelledby="summary-title"
+      >
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <p className="pc-eyebrow">TU CAMINO</p>
+            <p className="pc-eyebrow">
+              TU CAMINO
+            </p>
 
             <h2
               id="summary-title"
@@ -311,44 +533,52 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
-          {stats.map(({ label, value, icon: Icon, description }) => (
-            <div
-              key={label}
-              className="pc-card pc-card-interactive group p-5 sm:p-6"
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e8eff0] text-[#526e82] transition group-hover:bg-[#dce9e9]">
-                  <Icon size={19} strokeWidth={1.8} />
+          {stats.map(
+            ({
+              label,
+              value,
+              icon: Icon,
+              description,
+            }) => (
+              <div
+                key={label}
+                className="pc-card pc-card-interactive group p-5 sm:p-6"
+              >
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e8eff0] text-[#526e82] transition group-hover:bg-[#dce9e9]">
+                    <Icon
+                      size={19}
+                      strokeWidth={1.8}
+                    />
+                  </div>
+
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#c99c73]/75" />
                 </div>
 
-                <span className="h-1.5 w-1.5 rounded-full bg-[#c99c73]/75" />
+                <p className="font-display text-5xl font-medium leading-none text-[#263d50] sm:text-6xl">
+                  {value}
+                </p>
+
+                <p className="mt-3 text-xs font-semibold text-[#526e82] sm:text-sm">
+                  {label}
+                </p>
+
+                <p className="mt-1 text-[11px] leading-5 text-[#97a4af]">
+                  {description}
+                </p>
               </div>
-
-              <p className="font-display text-5xl font-medium leading-none text-[#263d50] sm:text-6xl">
-                {value}
-              </p>
-
-              <p className="mt-3 text-xs font-semibold text-[#526e82] sm:text-sm">
-                {label}
-              </p>
-
-              <p className="mt-1 text-[11px] leading-5 text-[#97a4af]">
-                {description}
-              </p>
-            </div>
-          ))}
+            ),
+          )}
         </div>
       </section>
 
-      {/* =====================================
-          CONTENIDO PRINCIPAL
-      ===================================== */}
-
+      {/* PETICIONES Y ACTIVIDAD */}
       <div className="grid items-start gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-
         {/* PETICIONES QUE NECESITAN ATENCIÓN */}
-        <section className="pc-card overflow-hidden" aria-labelledby="attention-title">
-
+        <section
+          className="pc-card overflow-hidden"
+          aria-labelledby="attention-title"
+        >
           <div className="border-b border-[#526e82]/10 p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -365,7 +595,8 @@ export default function DashboardPage() {
 
                 <p className="mt-3 max-w-md text-sm leading-6 text-[#8394a3]">
                   Algunas peticiones que puedes tener
-                  presentes en tus próximos momentos de oración.
+                  presentes en tus próximos momentos de
+                  oración.
                 </p>
               </div>
 
@@ -383,7 +614,10 @@ export default function DashboardPage() {
             {data.needsAttention.length === 0 ? (
               <div className="rounded-3xl bg-[#f2f5f5] px-6 py-12 text-center">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#526e82]">
-                  <Heart size={25} strokeWidth={1.5} />
+                  <Heart
+                    size={25}
+                    strokeWidth={1.5}
+                  />
                 </div>
 
                 <h3 className="font-display text-3xl text-[#263d50]">
@@ -391,57 +625,75 @@ export default function DashboardPage() {
                 </h3>
 
                 <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#8394a3]">
-                  No hay peticiones señaladas para atención por ahora.
+                  No hay peticiones señaladas para atención
+                  por ahora.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                {data.needsAttention.slice(0, 5).map((request) => (
-                  <Link
-                    key={request.id}
-                    to={`/personas/${request.personId}`}
-                    className="group flex items-start gap-4 rounded-[22px] border border-[#526e82]/10 bg-[#f9faf9] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#526e82]/25 hover:bg-white hover:shadow-[0_12px_30px_rgba(38,61,80,0.06)] sm:p-5"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#dce9e9] to-[#e8e3ed] font-display text-2xl font-semibold text-[#526e82]">
-                      {request.personName.trim().charAt(0).toUpperCase() || '?'}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-[#526e82]">
-                          {request.personName}
-                        </p>
-
-                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${getPriorityStyles(request.priority)}`}>
-                          {getPriorityLabel(request.priority)}
-                        </span>
+                {data.needsAttention
+                  .slice(0, 5)
+                  .map((request) => (
+                    <Link
+                      key={request.id}
+                      to={`/personas/${request.personId}`}
+                      className="group flex items-start gap-4 rounded-[22px] border border-[#526e82]/10 bg-[#f9faf9] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#526e82]/25 hover:bg-white hover:shadow-[0_12px_30px_rgba(38,61,80,0.06)] sm:p-5"
+                    >
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#dce9e9] to-[#e8e3ed] font-display text-2xl font-semibold text-[#526e82]">
+                        {request.personName
+                          .trim()
+                          .charAt(0)
+                          .toUpperCase() || '?'}
                       </div>
 
-                      <h3 className="mt-1.5 text-sm font-semibold leading-6 text-[#263d50]">
-                        {request.title}
-                      </h3>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-[#526e82]">
+                            {request.personName}
+                          </p>
 
-                      <p className="mt-2 text-[11px] text-[#97a4af]">
-                        {request.lastPrayedAt
-                          ? `Última oración: ${formatDate(request.lastPrayedAt)}`
-                          : `Registrada: ${formatDate(request.createdAt)}`}
-                      </p>
-                    </div>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${getPriorityStyles(
+                              request.priority,
+                            )}`}
+                          >
+                            {getPriorityLabel(
+                              request.priority,
+                            )}
+                          </span>
+                        </div>
 
-                    <ArrowUpRight
-                      size={18}
-                      className="mt-1 shrink-0 text-[#a8b9d0] transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#526e82]"
-                    />
-                  </Link>
-                ))}
+                        <h3 className="mt-1.5 text-sm font-semibold leading-6 text-[#263d50]">
+                          {request.title}
+                        </h3>
+
+                        <p className="mt-2 text-[11px] text-[#97a4af]">
+                          {request.lastPrayedAt
+                            ? `Última oración: ${formatDate(
+                                request.lastPrayedAt,
+                              )}`
+                            : `Registrada: ${formatDate(
+                                request.createdAt,
+                              )}`}
+                        </p>
+                      </div>
+
+                      <ArrowUpRight
+                        size={18}
+                        className="mt-1 shrink-0 text-[#a8b9d0] transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#526e82]"
+                      />
+                    </Link>
+                  ))}
               </div>
             )}
           </div>
         </section>
 
         {/* ACTIVIDAD RECIENTE */}
-        <section className="pc-card overflow-hidden" aria-labelledby="activity-title">
-
+        <section
+          className="pc-card overflow-hidden"
+          aria-labelledby="activity-title"
+        >
           <div className="border-b border-[#526e82]/10 p-6 sm:p-8">
             <p className="pc-eyebrow">
               MOMENTOS QUE PERMANECEN
@@ -455,7 +707,8 @@ export default function DashboardPage() {
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-[#8394a3]">
-              Un pequeño registro de tus últimos momentos de oración.
+              Un pequeño registro de tus últimos momentos
+              de oración.
             </p>
           </div>
 
@@ -463,7 +716,10 @@ export default function DashboardPage() {
             {data.recentActivity.length === 0 ? (
               <div className="rounded-3xl bg-[#f2f5f5] px-6 py-12 text-center">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#526e82]">
-                  <BookHeart size={25} strokeWidth={1.5} />
+                  <BookHeart
+                    size={25}
+                    strokeWidth={1.5}
+                  />
                 </div>
 
                 <h3 className="font-display text-3xl text-[#263d50]">
@@ -471,51 +727,163 @@ export default function DashboardPage() {
                 </h3>
 
                 <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#8394a3]">
-                  Cuando registres una oración, podrás recordarla aquí.
+                  Cuando registres una oración, podrás
+                  recordarla aquí.
                 </p>
               </div>
             ) : (
               <div className="relative space-y-7 before:absolute before:bottom-4 before:left-[17px] before:top-4 before:w-px before:bg-[#dce9e9]">
-                {data.recentActivity.slice(0, 5).map((activity) => (
-                  <div key={activity.id} className="relative flex gap-4">
-                    <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-4 border-white bg-[#dce9e9] text-[#526e82] shadow-sm">
-                      <Heart size={13} fill="currentColor" />
-                    </div>
+                {data.recentActivity
+                  .slice(0, 5)
+                  .map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="relative flex gap-4"
+                    >
+                      <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-4 border-white bg-[#dce9e9] text-[#526e82] shadow-sm">
+                        <Heart
+                          size={13}
+                          fill="currentColor"
+                        />
+                      </div>
 
-                    <div className="min-w-0 flex-1 pb-1">
-                      <p className="text-[11px] font-medium text-[#97a4af]">
-                        {formatDateTime(activity.prayedAt)}
-                      </p>
-
-                      <Link
-                        to={`/personas/${activity.personId}`}
-                        className="mt-1 block text-sm font-semibold text-[#526e82] hover:underline"
-                      >
-                        {activity.personName}
-                      </Link>
-
-                      <h3 className="mt-1 text-sm font-medium leading-6 text-[#263d50]">
-                        {activity.prayerRequestTitle}
-                      </h3>
-
-                      {activity.note && (
-                        <p className="mt-2 rounded-2xl bg-[#f2f5f5] px-4 py-3 text-xs leading-6 text-[#718394]">
-                          {activity.note}
+                      <div className="min-w-0 flex-1 pb-1">
+                        <p className="text-[11px] font-medium text-[#97a4af]">
+                          {formatDateTime(
+                            activity.prayedAt,
+                          )}
                         </p>
-                      )}
+
+                        <Link
+                          to={`/personas/${activity.personId}`}
+                          className="mt-1 block text-sm font-semibold text-[#526e82] hover:underline"
+                        >
+                          {activity.personName}
+                        </Link>
+
+                        <h3 className="mt-1 text-sm font-medium leading-6 text-[#263d50]">
+                          {activity.prayerRequestTitle}
+                        </h3>
+
+                        {activity.note && (
+                          <p className="mt-2 rounded-2xl bg-[#f2f5f5] px-4 py-3 text-xs leading-6 text-[#718394]">
+                            {activity.note}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </div>
         </section>
       </div>
 
-      {/* =====================================
-          REFLEXIÓN FINAL
-      ===================================== */}
+      {/* HISTORIAS DE GRATITUD */}
+      <section
+        className="pc-animate-enter"
+        aria-labelledby="gratitude-title"
+      >
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="pc-eyebrow">
+              MOMENTOS PARA AGRADECER
+            </p>
 
+            <h2
+              id="gratitude-title"
+              className="pc-heading mt-2 text-3xl text-[#263d50] sm:text-4xl"
+            >
+              Historias de gratitud
+            </h2>
+
+            <p className="mt-2 text-sm text-[#8394a3]">
+              Un recuerdo de las peticiones que han
+              encontrado respuesta.
+            </p>
+          </div>
+
+          <Link
+            to="/peticiones"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[#526e82] hover:underline"
+          >
+            Todas las peticiones
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+
+        {!gratitudeAvailable ? (
+          <div className="pc-card p-7 text-sm text-[#8394a3]">
+            No pudimos cargar las peticiones respondidas
+            por ahora.
+          </div>
+        ) : answeredRequests.length === 0 ? (
+          <div className="pc-card flex flex-wrap items-center gap-5 p-7">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f1e9e9] text-[#a88792]">
+              <CheckCircle2
+                size={25}
+                strokeWidth={1.6}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3 className="font-display text-2xl text-[#263d50]">
+                Cada historia tiene su tiempo.
+              </h3>
+
+              <p className="mt-1 text-sm leading-6 text-[#8394a3]">
+                Cuando marques una petición como
+                respondida, aparecerá aquí.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-3">
+            {answeredRequests.map((request) => (
+              <Link
+                key={request.id}
+                to={`/personas/${request.personId}`}
+                className="pc-card pc-card-interactive group p-6"
+              >
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#edf3ec] text-[#78947c]">
+                    <CheckCircle2
+                      size={21}
+                      strokeWidth={1.7}
+                    />
+                  </div>
+
+                  <ArrowUpRight
+                    size={17}
+                    className="text-[#9eacb6] group-hover:text-[#526e82]"
+                  />
+                </div>
+
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#849b8b]">
+                  Oración respondida
+                </p>
+
+                <h3 className="mt-2 line-clamp-2 font-display text-2xl leading-snug text-[#263d50]">
+                  {request.title}
+                </h3>
+
+                <p className="mt-3 text-xs text-[#8394a3]">
+                  {peopleNames[request.personId] ||
+                    'Una persona especial'}
+                </p>
+
+                {request.answeredAt && (
+                  <p className="mt-2 text-[11px] text-[#a2abb0]">
+                    {formatDate(request.answeredAt)}
+                  </p>
+                )}
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* REFLEXIÓN FINAL */}
       <section className="relative overflow-hidden rounded-[28px] border border-[#526e82]/10 bg-gradient-to-r from-[#e7eff0] via-[#edeaf0] to-[#f4e7dc] p-7 sm:p-10">
         <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/35 blur-3xl" />
 
