@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   Bell,
   ChevronRight,
@@ -17,6 +17,7 @@ import {
 import Sidebar from './Components/Sidebar'
 import ProtectedRoute from './Components/ProtectedRoute'
 import GlobalSearch from './Components/GlobalSearch'
+import NotificationCenter from './Components/NotificationCenter'
 
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -57,10 +58,30 @@ function AppLayout() {
   const location = useLocation()
 
   const [showSearch, setShowSearch] = useState(false)
+  const [showNotifications, setShowNotifications] =
+    useState(false)
+  const [unreadNotifications, setUnreadNotifications] =
+    useState(0)
+
+  const closeSearch = useCallback(() => {
+    setShowSearch(false)
+  }, [])
+
+  const closeNotifications = useCallback(() => {
+    setShowNotifications(false)
+  }, [])
+
+  const handleUnreadCountChange = useCallback(
+    (count: number) => {
+      setUnreadNotifications(count)
+    },
+    [],
+  )
 
   const currentPage =
-    pageDetails.find((page) => page.match(location.pathname)) ??
-    pageDetails[0]
+    pageDetails.find((page) =>
+      page.match(location.pathname),
+    ) ?? pageDetails[0]
 
   return (
     <div className="pc-atmosphere flex min-h-screen">
@@ -109,24 +130,41 @@ function AppLayout() {
                 aria-label="Abrir búsqueda global"
                 aria-haspopup="dialog"
                 aria-expanded={showSearch}
-                onClick={() => setShowSearch(true)}
+                onClick={() => {
+                  setShowNotifications(false)
+                  setShowSearch(true)
+                }}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-[#526e82]/10 bg-white/70 text-[#526e82] transition hover:border-[#526e82]/25 hover:bg-white hover:shadow-[0_5px_18px_rgba(38,61,80,0.07)]"
               >
                 <Search size={18} />
               </button>
 
-              {/* NOTIFICACIONES — PRÓXIMAMENTE */}
-              <div className="relative">
-                <button
-                  type="button"
-                  aria-label="Notificaciones (próximamente)"
-                  disabled
-                  title="Notificaciones próximamente"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#526e82]/10 bg-white/70 text-[#526e82] opacity-50"
-                >
-                  <Bell size={18} />
-                </button>
-              </div>
+              {/* CENTRO DE NOTIFICACIONES */}
+              <button
+                type="button"
+                aria-label={
+                  unreadNotifications > 0
+                    ? `Abrir notificaciones, ${unreadNotifications} pendientes`
+                    : 'Abrir notificaciones'
+                }
+                aria-haspopup="dialog"
+                aria-expanded={showNotifications}
+                onClick={() => {
+                  setShowSearch(false)
+                  setShowNotifications(true)
+                }}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#526e82]/10 bg-white/70 text-[#526e82] transition hover:border-[#526e82]/25 hover:bg-white hover:shadow-[0_5px_18px_rgba(38,61,80,0.07)]"
+              >
+                <Bell size={18} />
+
+                {unreadNotifications > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#f8f5f0] bg-[#a58cae] px-1 text-[9px] font-bold text-white">
+                    {unreadNotifications > 9
+                      ? '9+'
+                      : unreadNotifications}
+                  </span>
+                )}
+              </button>
 
               {/* IDENTIDAD VISUAL */}
               <div className="ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#526e82] to-[#a8b9d0] text-white shadow-[0_8px_22px_rgba(82,110,130,0.18)]">
@@ -182,10 +220,17 @@ function AppLayout() {
         </footer>
       </div>
 
-      {/* MODAL DE BÚSQUEDA GLOBAL */}
+      {/* BÚSQUEDA GLOBAL */}
       <GlobalSearch
         open={showSearch}
-        onClose={() => setShowSearch(false)}
+        onClose={closeSearch}
+      />
+
+      {/* CENTRO DE NOTIFICACIONES */}
+      <NotificationCenter
+        open={showNotifications}
+        onClose={closeNotifications}
+        onUnreadCountChange={handleUnreadCountChange}
       />
     </div>
   )
