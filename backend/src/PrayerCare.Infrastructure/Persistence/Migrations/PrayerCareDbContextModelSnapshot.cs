@@ -292,6 +292,91 @@ namespace PrayerCare.Infrastructure.Persistence.Migrations
                     b.ToTable("CommunityMembers", (string)null);
                 });
 
+            modelBuilder.Entity("PrayerCare.Domain.Entities.CommunityPrayer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CommunityPrayerRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PrayedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityPrayerRequestId", "PrayedAt");
+
+                    b.HasIndex("UserId", "PrayedAt");
+
+                    b.ToTable("CommunityPrayers", (string)null);
+                });
+
+            modelBuilder.Entity("PrayerCare.Domain.Entities.CommunityPrayerRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("AnsweredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("AuthorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(5000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsHidden")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastEditedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorUserId");
+
+                    b.HasIndex("CommunityId", "CreatedAt");
+
+                    b.HasIndex("CommunityId", "Status");
+
+                    b.ToTable("CommunityPrayerRequests", (string)null);
+                });
+
             modelBuilder.Entity("PrayerCare.Domain.Entities.Person", b =>
                 {
                     b.Property<Guid>("Id")
@@ -668,6 +753,40 @@ namespace PrayerCare.Infrastructure.Persistence.Migrations
                     b.HasOne("PrayerCare.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Community");
+                });
+
+            modelBuilder.Entity("PrayerCare.Domain.Entities.CommunityPrayer", b =>
+                {
+                    b.HasOne("PrayerCare.Domain.Entities.CommunityPrayerRequest", "CommunityPrayerRequest")
+                        .WithMany()
+                        .HasForeignKey("CommunityPrayerRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrayerCare.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CommunityPrayerRequest");
+                });
+
+            modelBuilder.Entity("PrayerCare.Domain.Entities.CommunityPrayerRequest", b =>
+                {
+                    b.HasOne("PrayerCare.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrayerCare.Domain.Entities.Community", "Community")
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

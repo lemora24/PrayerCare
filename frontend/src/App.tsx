@@ -25,6 +25,10 @@ import PeoplePage from './pages/PeoplePage'
 import PersonDetailPage from './pages/PersonDetailPage'
 import PrayerRequestsPage from './pages/PrayerRequestsPage'
 import AgendaPage from './pages/AgendaPage'
+import CommunitiesPage from './pages/CommunitiesPage'
+import CommunityDetailPage from './pages/CommunityDetailPage'
+import CommunityPrayPage from './pages/CommunityPrayPage'
+import CommunityCreatePrayerPage from './pages/CommunityCreatePrayerPage'
 
 const pageDetails = [
   {
@@ -51,6 +55,16 @@ const pageDetails = [
     match: (path: string) => path === '/agenda',
     title: 'Mi agenda',
     subtitle: 'Un momento para estar presente.',
+  },
+  {
+    match: (path: string) => path === '/comunidades',
+    title: 'Mis comunidades',
+    subtitle: 'La fe también se vive acompañados.',
+  },
+  {
+    match: (path: string) => path.startsWith('/comunidades/'),
+    title: 'Mi comunidad',
+    subtitle: 'Unidos en fe, esperanza y oración.',
   },
 ]
 
@@ -120,7 +134,6 @@ function AppLayout() {
                   size={14}
                   className="text-[#c99c73]"
                 />
-
                 Un espacio para confiar
               </div>
 
@@ -201,6 +214,23 @@ function AppLayout() {
               <Route
                 path="/agenda"
                 element={<AgendaPage />}
+              />
+
+              <Route
+                path="/comunidades"
+                element={<CommunitiesPage />}
+              />
+              <Route
+                path="/comunidades/:communityId"
+                element={<CommunityDetailPage />}
+              />
+              <Route
+                path="/comunidades/:communityId/orar"
+                element={<CommunityPrayPage />}
+              />
+              <Route
+                path="/comunidades/:communityId/pedir-oracion"
+                element={<CommunityCreatePrayerPage />}
               />
             </Routes>
           </div>

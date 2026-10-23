@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Church,
   HeartHandshake,
   LayoutDashboard,
   Menu,
@@ -17,6 +18,7 @@ import {
   X,
 } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
+
 
 const navigation = [
   {
@@ -43,7 +45,14 @@ const navigation = [
     icon: CalendarDays,
     path: '/agenda',
   },
+  {
+    label: 'Mis comunidades',
+    description: 'Caminamos juntos',
+    icon: Church,
+    path: '/comunidades',
+  },
 ]
+
 
 export default function Sidebar() {
   const location = useLocation()

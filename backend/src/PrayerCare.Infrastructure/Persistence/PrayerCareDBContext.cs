@@ -8,10 +8,7 @@ using PrayerCare.Infrastructure.Identity;
 namespace PrayerCare.Infrastructure.Persistence;
 
 public class PrayerCareDbContext
-    : IdentityDbContext<
-        ApplicationUser,
-        IdentityRole<Guid>,
-        Guid>
+    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
     public PrayerCareDbContext(
         DbContextOptions<PrayerCareDbContext> options)
@@ -20,7 +17,7 @@ public class PrayerCareDbContext
     }
 
     // ==========================================
-    // PERSONAS Y ORACIÓN PERSONAL
+    // MODULO PERSONAL
     // ==========================================
 
     public DbSet<Person> People => Set<Person>();
@@ -35,7 +32,7 @@ public class PrayerCareDbContext
         => Set<PrayerReminder>();
 
     // ==========================================
-    // COMUNIDADES PRIVADAS
+    // MODULO DE COMUNIDADES
     // ==========================================
 
     public DbSet<Community> Communities
@@ -47,44 +44,46 @@ public class PrayerCareDbContext
     public DbSet<CommunityInvitation> CommunityInvitations
         => Set<CommunityInvitation>();
 
+    // Peticiones publicadas dentro de comunidades.
+    public DbSet<CommunityPrayerRequest> CommunityPrayerRequests
+        => Set<CommunityPrayerRequest>();
+
+    // Historial de oraciones realizadas por miembros.
+    public DbSet<CommunityPrayer> CommunityPrayers
+        => Set<CommunityPrayer>();
+
     // ==========================================
-    // CONFIGURACIÓN DE ENTITY FRAMEWORK CORE
+    // CONFIGURACION DEL MODELO
     // ==========================================
 
-    protected override void OnModelCreating(
-        ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        // Configuración de ASP.NET Core Identity
-        base.OnModelCreating(modelBuilder);
+        base.OnModelCreating(builder);
 
-        // Cargar automáticamente las configuraciones
-        // de las entidades desde Infrastructure
-        modelBuilder.ApplyConfigurationsFromAssembly(
+        // Aplicar configuraciones de las entidades.
+        builder.ApplyConfigurationsFromAssembly(
             typeof(PrayerCareDbContext).Assembly);
 
-        // ======================================
-        // RELACIONES CON ASP.NET CORE IDENTITY
-        // ======================================
+        // ==========================================
+        // RELACIONES DE COMUNIDADES CON USUARIOS
+        // ==========================================
 
-        // Cada membresía pertenece a un usuario
-        modelBuilder.Entity<CommunityMember>()
+        builder.Entity<CommunityMember>()
             .HasOne<ApplicationUser>()
             .WithMany()
-            .HasForeignKey(m => m.UserId)
+            .HasForeignKey(member => member.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Cada comunidad tiene un usuario fundador
-        modelBuilder.Entity<Community>()
+        builder.Entity<Community>()
             .HasOne<ApplicationUser>()
             .WithMany()
-            .HasForeignKey(c => c.CreatedByUserId)
+            .HasForeignKey(community => community.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Cada invitación tiene un usuario creador
-        modelBuilder.Entity<CommunityInvitation>()
+        builder.Entity<CommunityInvitation>()
             .HasOne<ApplicationUser>()
             .WithMany()
-            .HasForeignKey(i => i.CreatedByUserId)
+            .HasForeignKey(invitation => invitation.CreatedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
